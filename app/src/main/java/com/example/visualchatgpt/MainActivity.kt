@@ -2,12 +2,17 @@ package com.example.visualchatgpt
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.media.Image
+import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -21,6 +26,8 @@ class MainActivity : AppCompatActivity() {
 
     private val RESULT_LOAD_IMAGE = 1
 
+    private val RESULT_CAPTURE_IMAGE = 2
+
     private lateinit var imageView: ImageView
 
     private lateinit var textView: TextView
@@ -33,6 +40,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cpyBtn: ImageButton
 
+    private lateinit var openCamera: Button
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -42,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         button = findViewById(R.id.genTextButton)
         cpyBtn = findViewById(R.id.cpyBtn)
         selectImgBtn = findViewById(R.id.selectImageButton)
+        openCamera = findViewById(R.id.selectCameraButton)
 
         button.setOnClickListener {
             detectTextFromImage()
@@ -55,6 +65,15 @@ class MainActivity : AppCompatActivity() {
             copyTextToClipBoard()
         }
 
+        openCamera.setOnClickListener {
+            openCameraAndPickImage()
+        }
+
+    }
+
+    private fun openCameraAndPickImage() {
+        val takePicture = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        startActivityForResult(takePicture, RESULT_CAPTURE_IMAGE)
     }
 
     private fun copyTextToClipBoard() {
@@ -93,6 +112,10 @@ class MainActivity : AppCompatActivity() {
 
             imageView.setImageBitmap(BitmapFactory.decodeFile(picPath))
         }
+
+        if (requestCode == RESULT_CAPTURE_IMAGE && resultCode == RESULT_OK && data != null) {
+            imageView.setImageBitmap(data.extras?.get("data") as Bitmap)
+        }
     }
 
 
@@ -102,7 +125,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val imgBitmap = BitmapFactory.decodeFile(picPath)
+        val imgBitmap = (imageView.drawable as BitmapDrawable).bitmap
 
         val textRecognizer = TextRecognizer.Builder(applicationContext).build()
 

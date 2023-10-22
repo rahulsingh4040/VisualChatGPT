@@ -23,8 +23,18 @@
         android:id="@+id/selectImageButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Select Image"
+        android:text="Select Image From gallery"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/selectCameraButton"
+        app:layout_constraintTop_toBottomOf="@id/imageSrc"
+        app:layout_constraintBottom_toTopOf="@id/imageText"/>
+
+    <Button
+        android:id="@+id/selectCameraButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Open camera"
+        app:layout_constraintStart_toEndOf="@id/selectImageButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/imageSrc"
         app:layout_constraintBottom_toTopOf="@id/imageText"/>
