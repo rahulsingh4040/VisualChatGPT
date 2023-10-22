@@ -1,10 +1,15 @@
 package com.example.visualchatgpt
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.media.Image
 import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -22,6 +27,12 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var button: Button
 
+    private lateinit var picPath: String
+
+    private lateinit var selectImgBtn: Button
+
+    private lateinit var cpyBtn: ImageButton
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -29,16 +40,31 @@ class MainActivity : AppCompatActivity() {
         imageView = findViewById(R.id.imageSrc)
         textView = findViewById(R.id.imageText)
         button = findViewById(R.id.genTextButton)
+        cpyBtn = findViewById(R.id.cpyBtn)
+        selectImgBtn = findViewById(R.id.selectImageButton)
 
         button.setOnClickListener {
             detectTextFromImage()
         }
 
-        imageView.setOnClickListener {
+        selectImgBtn.setOnClickListener {
             pickImageFromGallery()
         }
 
+        cpyBtn.setOnClickListener {
+            copyTextToClipBoard()
+        }
+
     }
+
+    private fun copyTextToClipBoard() {
+        val txt = textView.text
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipData = ClipData.newPlainText("Image Data", txt)
+        clipboard.setPrimaryClip(clipData)
+        Toast.makeText(this, "Text copied to clipboard", Toast.LENGTH_LONG).show()
+    }
+
 
     private fun pickImageFromGallery() {
         val intent = Intent (
@@ -62,8 +88,8 @@ class MainActivity : AppCompatActivity() {
             )
             cursor?.moveToFirst()
             val colIdx = cursor?.getColumnIndex(filePathCol[0])
-            val picPath = cursor?.getString(colIdx!!)
-            cursor?.close()
+            picPath = cursor?.getString(colIdx!!)!!
+            cursor.close()
 
             imageView.setImageBitmap(BitmapFactory.decodeFile(picPath))
         }
@@ -72,7 +98,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun detectTextFromImage(){
 
-        val imgBitmap = BitmapFactory.decodeResource(applicationContext.resources, R.drawable.sample_image)
+        if (!this::picPath.isInitialized) {
+            return
+        }
+
+        val imgBitmap = BitmapFactory.decodeFile(picPath)
 
         val textRecognizer = TextRecognizer.Builder(applicationContext).build()
 
