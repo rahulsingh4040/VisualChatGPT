@@ -42,6 +42,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var openCamera: Button
 
+    private lateinit var developerLink: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -52,6 +54,13 @@ class MainActivity : AppCompatActivity() {
         cpyBtn = findViewById(R.id.cpyBtn)
         selectImgBtn = findViewById(R.id.selectImageButton)
         openCamera = findViewById(R.id.selectCameraButton)
+        developerLink = findViewById(R.id.developerLink)
+
+        developerLink.setOnClickListener {
+            val uri = Uri.parse("https://www.linkedin.com/in/rahulsingh4040/")
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            startActivity(intent)
+        }
 
         button.setOnClickListener {
             detectTextFromImage()
