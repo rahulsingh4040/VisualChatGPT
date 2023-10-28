@@ -11,16 +11,27 @@ import android.graphics.drawable.BitmapDrawable
 import android.media.Image
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.android.volley.RequestQueue
+import com.android.volley.Response
+import com.android.volley.RetryPolicy
+import com.android.volley.VolleyError
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
 import com.google.android.gms.vision.Frame
 import com.google.android.gms.vision.text.TextRecognizer
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
@@ -42,7 +53,15 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var openCamera: Button
 
+    private lateinit var aiBtn: Button
+
     private lateinit var developerLink: TextView
+
+    private lateinit var progressBar: ProgressBar
+
+    private var API_KEY = "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"
+
+    private var url = "https://api.openai.com/v1/completions"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +74,8 @@ class MainActivity : AppCompatActivity() {
         selectImgBtn = findViewById(R.id.selectImageButton)
         openCamera = findViewById(R.id.selectCameraButton)
         developerLink = findViewById(R.id.developerLink)
+        progressBar = findViewById(R.id.progressBar)
+        aiBtn = findViewById(R.id.aiBtn)
 
         developerLink.setOnClickListener {
             val uri = Uri.parse("https://www.linkedin.com/in/rahulsingh4040/")
@@ -78,6 +99,60 @@ class MainActivity : AppCompatActivity() {
             openCameraAndPickImage()
         }
 
+        aiBtn.setOnClickListener {
+            getResponse(textView.text.toString())
+        }
+
+    }
+
+    private fun getResponse(query: String) {
+        val queue: RequestQueue = Volley.newRequestQueue(applicationContext)
+
+        val jsonObject = JSONObject()
+
+        jsonObject.put("model", "text-davinci-003")
+        jsonObject.put("prompt", query)
+        jsonObject.put("temperature", 0)
+        jsonObject.put("max_tokens", 100)
+        jsonObject.put("top_p", 1)
+        jsonObject.put("frequency_penalty", 0.0)
+        jsonObject.put("presence_penalty", 0.0)
+
+        val postRequest = object: JsonObjectRequest(Method.POST, url, jsonObject,
+            Response.Listener { response ->  
+                val responseMsg = response.getJSONArray("choices").getJSONObject(0).
+                getString("text")
+
+                textView.text = responseMsg
+            },
+            Response.ErrorListener {
+                Log.d("ASDF", "Error: ${it.message}")
+            }) {
+
+            override fun getHeaders(): MutableMap<String, String> {
+                val params: MutableMap<String, String> = HashMap()
+                params["Content-Type"] = "application/json"
+                params["Authorization"] = API_KEY
+                return params
+            }
+        }
+
+        postRequest.retryPolicy = object : RetryPolicy {
+            override fun getCurrentTimeout(): Int {
+                return 50000
+            }
+
+            override fun getCurrentRetryCount(): Int {
+                return 50000
+            }
+
+            override fun retry(error: VolleyError?) {
+
+            }
+
+        }
+
+        queue.add(postRequest)
     }
 
     private fun openCameraAndPickImage() {
@@ -90,7 +165,6 @@ class MainActivity : AppCompatActivity() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText("Image Data", txt)
         clipboard.setPrimaryClip(clipData)
-        Toast.makeText(this, "Text copied to clipboard", Toast.LENGTH_LONG).show()
     }
 
 
@@ -130,10 +204,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun detectTextFromImage(){
 
-        if (!this::picPath.isInitialized) {
-            return
-        }
-
         val imgBitmap = (imageView.drawable as BitmapDrawable).bitmap
 
         val textRecognizer = TextRecognizer.Builder(applicationContext).build()
@@ -142,6 +212,8 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Text Recognizer not initialized", Toast.LENGTH_LONG)
             return
         }
+
+        progressBar.visibility = View.VISIBLE
 
         val frames = Frame.Builder().setBitmap(imgBitmap).build()
 
@@ -153,7 +225,10 @@ class MainActivity : AppCompatActivity() {
             textExtracted += items.valueAt(i).value
         }
 
-        textView.text = textExtracted
+        Handler(Looper.getMainLooper()).postDelayed ({
+            progressBar.visibility = View.GONE
+            textView.text = textExtracted
+        }, 1000)
 
     }
 
