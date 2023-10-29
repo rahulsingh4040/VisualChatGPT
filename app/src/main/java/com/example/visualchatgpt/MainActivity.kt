@@ -2,13 +2,11 @@ package com.example.visualchatgpt
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
-import android.media.Image
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -23,6 +21,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.RetryPolicy
@@ -31,7 +30,9 @@ import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.android.gms.vision.Frame
 import com.google.android.gms.vision.text.TextRecognizer
+import org.json.JSONArray
 import org.json.JSONObject
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -59,9 +60,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var progressBar: ProgressBar
 
-    private var API_KEY = "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"
+    private var API_KEY = "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"
 
-    private var url = "https://api.openai.com/v1/completions"
+    private var url = "https://api.openai.com/v1/chat/completions"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,53 +107,61 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getResponse(query: String) {
-        val queue: RequestQueue = Volley.newRequestQueue(applicationContext)
+
+        Log.d("ASDF", "Awaiting response from GPT4")
 
         val jsonObject = JSONObject()
 
-        jsonObject.put("model", "text-davinci-003")
-        jsonObject.put("prompt", query)
-        jsonObject.put("temperature", 0)
-        jsonObject.put("max_tokens", 100)
-        jsonObject.put("top_p", 1)
-        jsonObject.put("frequency_penalty", 0.0)
-        jsonObject.put("presence_penalty", 0.0)
+        jsonObject.put("model", "gpt-3.5-turbo")
+
+        val jsonArrayMessage = JSONArray()
+        val jsonObjectMessage = JSONObject()
+        jsonObjectMessage.put("role", "user")
+        jsonObjectMessage.put("content", query)
+        jsonArrayMessage.put(jsonObjectMessage)
+
+        jsonObject.put("messages", jsonArrayMessage)
 
         val postRequest = object: JsonObjectRequest(Method.POST, url, jsonObject,
-            Response.Listener { response ->  
-                val responseMsg = response.getJSONArray("choices").getJSONObject(0).
-                getString("text")
+            Response.Listener { response ->
+                val stringText = response.getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
 
-                textView.text = responseMsg
+                Log.d("ASDF", "Resonse Msg: $stringText")
+                progressBar.visibility = View.GONE
+                textView.text = stringText
+
             },
             Response.ErrorListener {
-                Log.d("ASDF", "Error: ${it.message}")
+                Log.d("ASDF", "Error: ${it.stackTrace[0]}")
             }) {
 
             override fun getHeaders(): MutableMap<String, String> {
                 val params: MutableMap<String, String> = HashMap()
                 params["Content-Type"] = "application/json"
-                params["Authorization"] = API_KEY
+                params["Authorization"] = "Bearer $API_KEY"
                 return params
             }
+
+            override fun parseNetworkError(volleyError: VolleyError?): VolleyError {
+                return super.parseNetworkError(volleyError)
+            }
         }
 
-        postRequest.retryPolicy = object : RetryPolicy {
-            override fun getCurrentTimeout(): Int {
-                return 50000
-            }
+        val intTimeoutPeriod = 60000 // 60 seconds timeout duration defined
 
-            override fun getCurrentRetryCount(): Int {
-                return 50000
-            }
+        val retryPolicy: RetryPolicy = DefaultRetryPolicy(
+            intTimeoutPeriod,
+            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
 
-            override fun retry(error: VolleyError?) {
+        postRequest.retryPolicy = retryPolicy
 
-            }
-
-        }
-
-        queue.add(postRequest)
+        Volley.newRequestQueue(applicationContext).add(postRequest)
+        progressBar.visibility = View.VISIBLE
     }
 
     private fun openCameraAndPickImage() {
