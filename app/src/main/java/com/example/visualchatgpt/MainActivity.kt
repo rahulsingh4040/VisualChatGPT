@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var progressBar: ProgressBar
 
-    private var API_KEY = "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"
+    private var API_KEY = "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"
 
     private var url = "https://api.openai.com/v1/chat/completions"
 
