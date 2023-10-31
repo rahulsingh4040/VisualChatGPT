@@ -22,7 +22,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.DefaultRetryPolicy
-import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.RetryPolicy
 import com.android.volley.VolleyError
@@ -108,7 +107,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun getResponse(query: String) {
 
-        Log.d("ASDF", "Awaiting response from GPT4")
+        Log.d(TAG, "Awaiting response from GPT4")
+
+        if (query == "Extracted Text Here") {
+            Toast.makeText(this, "No text found to search", Toast.LENGTH_LONG).show()
+            return
+        }
 
         val jsonObject = JSONObject()
 
@@ -129,13 +133,14 @@ class MainActivity : AppCompatActivity() {
                     .getJSONObject("message")
                     .getString("content")
 
-                Log.d("ASDF", "Resonse Msg: $stringText")
+                Log.d(TAG, "Response Msg: $stringText")
                 progressBar.visibility = View.GONE
                 textView.text = stringText
 
             },
             Response.ErrorListener {
-                Log.d("ASDF", "Error: ${it.stackTrace[0]}")
+                Toast.makeText(this, "API error please contact developer", Toast.LENGTH_LONG).show()
+                Log.d(TAG, "Error: ${it.stackTrace[0]}")
             }) {
 
             override fun getHeaders(): MutableMap<String, String> {
@@ -163,7 +168,7 @@ class MainActivity : AppCompatActivity() {
         Volley.newRequestQueue(applicationContext).add(postRequest)
         progressBar.visibility = View.VISIBLE
     }
-
+    
     private fun openCameraAndPickImage() {
         val takePicture = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         startActivityForResult(takePicture, RESULT_CAPTURE_IMAGE)
@@ -171,6 +176,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun copyTextToClipBoard() {
         val txt = textView.text
+        if (txt == "") {
+            Toast.makeText(this, "No text found to copy", Toast.LENGTH_LONG).show()
+            return
+        }
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText("Image Data", txt)
         clipboard.setPrimaryClip(clipData)
@@ -180,12 +189,12 @@ class MainActivity : AppCompatActivity() {
     private fun pickImageFromGallery() {
         val intent = Intent (
             Intent.ACTION_PICK,
-            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         )
         startActivityForResult(intent, RESULT_LOAD_IMAGE)
     }
 
-
+    @Deprecated("Deprecated API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -213,12 +222,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun detectTextFromImage(){
 
+        if (imageView.drawable == null) {
+            Toast.makeText(this, "No image found to extract text", Toast.LENGTH_LONG).show()
+            return
+        }
+
         val imgBitmap = (imageView.drawable as BitmapDrawable).bitmap
 
         val textRecognizer = TextRecognizer.Builder(applicationContext).build()
 
         if (!textRecognizer.isOperational) {
-            Toast.makeText(this, "Text Recognizer not initialized", Toast.LENGTH_LONG)
+            Toast.makeText(this, "Text Recognizer not initialized", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -228,7 +242,7 @@ class MainActivity : AppCompatActivity() {
 
         val items = textRecognizer.detect(frames)
 
-        var textExtracted: String = ""
+        var textExtracted = ""
 
         for (i in 0 until items.size()) {
             textExtracted += items.valueAt(i).value
@@ -239,6 +253,10 @@ class MainActivity : AppCompatActivity() {
             textView.text = textExtracted
         }, 1000)
 
+    }
+    
+    companion object {
+        private const val TAG = "VisualChatGPT: MainActivity" 
     }
 
 }
