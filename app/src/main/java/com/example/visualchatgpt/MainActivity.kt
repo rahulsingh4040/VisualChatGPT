@@ -6,19 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
-import android.widget.Button
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.DefaultRetryPolicy
@@ -27,92 +19,79 @@ import com.android.volley.RetryPolicy
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.google.android.gms.vision.Frame
-import com.google.android.gms.vision.text.TextRecognizer
+import com.example.visualchatgpt.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
 
 class MainActivity : AppCompatActivity() {
 
-    private val RESULT_LOAD_IMAGE = 1
-
-    private val RESULT_CAPTURE_IMAGE = 2
-
-    private lateinit var imageView: ImageView
-
-    private lateinit var textView: TextView
-
-    private lateinit var button: Button
-
-    private lateinit var picPath: String
-
-    private lateinit var selectImgBtn: Button
-
-    private lateinit var cpyBtn: ImageButton
-
-    private lateinit var openCamera: Button
-
-    private lateinit var aiBtn: Button
-
-    private lateinit var developerLink: TextView
-
-    private lateinit var progressBar: ProgressBar
-
-    private var API_KEY = "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"
-
-    private var url = "https://api.openai.com/v1/chat/completions"
+    private lateinit var mBinding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        imageView = findViewById(R.id.imageSrc)
-        textView = findViewById(R.id.imageText)
-        button = findViewById(R.id.genTextButton)
-        cpyBtn = findViewById(R.id.cpyBtn)
-        selectImgBtn = findViewById(R.id.selectImageButton)
-        openCamera = findViewById(R.id.selectCameraButton)
-        developerLink = findViewById(R.id.developerLink)
-        progressBar = findViewById(R.id.progressBar)
-        aiBtn = findViewById(R.id.aiBtn)
+        mBinding = ActivityMainBinding.inflate(layoutInflater)
 
-        developerLink.setOnClickListener {
-            val uri = Uri.parse("https://www.linkedin.com/in/rahulsingh4040/")
+        setContentView(mBinding.root)
+
+        setOnClickListeners()
+
+    }
+
+    private fun setOnClickListeners() {
+        mBinding.developerLink.setOnClickListener {
+            val uri = Uri.parse(Const.developerURL)
             val intent = Intent(Intent.ACTION_VIEW, uri)
             startActivity(intent)
         }
 
-        button.setOnClickListener {
-            detectTextFromImage()
+        mBinding.genTextButton.setOnClickListener {
+            var textFromImage: String?
+            GlobalScope.launch (Dispatchers.Default) {
+                textFromImage = GoogleVision.getTextFromImage(applicationContext, mBinding.imageSrc)
+                withContext(Dispatchers.Main) {
+                    if (textFromImage != null) mBinding.imageText.text = textFromImage
+                }
+            }
         }
 
-        selectImgBtn.setOnClickListener {
+        mBinding.selectImageButton.setOnClickListener {
             pickImageFromGallery()
         }
 
-        cpyBtn.setOnClickListener {
+        mBinding.cpyBtn.setOnClickListener {
             copyTextToClipBoard()
         }
 
-        openCamera.setOnClickListener {
+        mBinding.selectCameraButton.setOnClickListener {
             openCameraAndPickImage()
         }
 
-        aiBtn.setOnClickListener {
-            getResponse(textView.text.toString())
+        mBinding.aiBtn.setOnClickListener {
+            GlobalScope.launch (Dispatchers.IO) {
+                val outputString = Gpt4Api.getResponse(applicationContext, mBinding.imageText.text.toString())
+                withContext(Dispatchers.Main) {
+                    if (outputString != null) mBinding.imageText.text = outputString
+                }
+            }
         }
-
     }
 
-    private fun getResponse(query: String) {
+    private fun getResponse(query: String): String? {
 
         Log.d(TAG, "Awaiting response from GPT4")
 
         if (query == "Extracted Text Here") {
             Toast.makeText(this, "No text found to search", Toast.LENGTH_LONG).show()
-            return
+            return null
         }
+
+        var outputString: String? = null
 
         val jsonObject = JSONObject()
 
@@ -126,7 +105,7 @@ class MainActivity : AppCompatActivity() {
 
         jsonObject.put("messages", jsonArrayMessage)
 
-        val postRequest = object: JsonObjectRequest(Method.POST, url, jsonObject,
+        val postRequest = object: JsonObjectRequest(Method.POST, Const.url, jsonObject,
             Response.Listener { response ->
                 val stringText = response.getJSONArray("choices")
                     .getJSONObject(0)
@@ -134,8 +113,8 @@ class MainActivity : AppCompatActivity() {
                     .getString("content")
 
                 Log.d(TAG, "Response Msg: $stringText")
-                progressBar.visibility = View.GONE
-                textView.text = stringText
+                mBinding.progressBar.visibility = View.GONE
+                outputString = stringText
 
             },
             Response.ErrorListener {
@@ -146,7 +125,7 @@ class MainActivity : AppCompatActivity() {
             override fun getHeaders(): MutableMap<String, String> {
                 val params: MutableMap<String, String> = HashMap()
                 params["Content-Type"] = "application/json"
-                params["Authorization"] = "Bearer $API_KEY"
+                params["Authorization"] = "Bearer ${Const.API_KEY}"
                 return params
             }
 
@@ -166,16 +145,18 @@ class MainActivity : AppCompatActivity() {
         postRequest.retryPolicy = retryPolicy
 
         Volley.newRequestQueue(applicationContext).add(postRequest)
-        progressBar.visibility = View.VISIBLE
+        mBinding.progressBar.visibility = View.VISIBLE
+
+        return outputString
     }
     
     private fun openCameraAndPickImage() {
         val takePicture = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        startActivityForResult(takePicture, RESULT_CAPTURE_IMAGE)
+        startActivityForResult(takePicture, Const.RESULT_CAPTURE_IMAGE)
     }
 
     private fun copyTextToClipBoard() {
-        val txt = textView.text
+        val txt = mBinding.imageText.text
         if (txt == "") {
             Toast.makeText(this, "No text found to copy", Toast.LENGTH_LONG).show()
             return
@@ -191,14 +172,14 @@ class MainActivity : AppCompatActivity() {
             Intent.ACTION_PICK,
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         )
-        startActivityForResult(intent, RESULT_LOAD_IMAGE)
+        startActivityForResult(intent, Const.RESULT_LOAD_IMAGE)
     }
 
     @Deprecated("Deprecated API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && data != null) {
+        if (requestCode == Const.RESULT_LOAD_IMAGE && resultCode == RESULT_OK && data != null) {
             val selectedImage = data.data
             val filePathCol = arrayOf(MediaStore.Images.Media.DATA)
             val cursor = contentResolver.query(
@@ -208,51 +189,15 @@ class MainActivity : AppCompatActivity() {
             )
             cursor?.moveToFirst()
             val colIdx = cursor?.getColumnIndex(filePathCol[0])
-            picPath = cursor?.getString(colIdx!!)!!
+            val picPath = cursor?.getString(colIdx!!)!!
             cursor.close()
 
-            imageView.setImageBitmap(BitmapFactory.decodeFile(picPath))
+            mBinding.imageSrc.setImageBitmap(BitmapFactory.decodeFile(picPath))
         }
 
-        if (requestCode == RESULT_CAPTURE_IMAGE && resultCode == RESULT_OK && data != null) {
-            imageView.setImageBitmap(data.extras?.get("data") as Bitmap)
+        if (requestCode == Const.RESULT_CAPTURE_IMAGE && resultCode == RESULT_OK && data != null) {
+            mBinding.imageSrc.setImageBitmap(data.extras?.get("data") as Bitmap)
         }
-    }
-
-
-    private fun detectTextFromImage(){
-
-        if (imageView.drawable == null) {
-            Toast.makeText(this, "No image found to extract text", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        val imgBitmap = (imageView.drawable as BitmapDrawable).bitmap
-
-        val textRecognizer = TextRecognizer.Builder(applicationContext).build()
-
-        if (!textRecognizer.isOperational) {
-            Toast.makeText(this, "Text Recognizer not initialized", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        progressBar.visibility = View.VISIBLE
-
-        val frames = Frame.Builder().setBitmap(imgBitmap).build()
-
-        val items = textRecognizer.detect(frames)
-
-        var textExtracted = ""
-
-        for (i in 0 until items.size()) {
-            textExtracted += items.valueAt(i).value
-        }
-
-        Handler(Looper.getMainLooper()).postDelayed ({
-            progressBar.visibility = View.GONE
-            textView.text = textExtracted
-        }, 1000)
-
     }
     
     companion object {

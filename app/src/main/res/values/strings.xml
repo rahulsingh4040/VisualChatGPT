@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">VisualChatGPT</string>
+    <string name="image_preview">Image Preview</string>
+    <string name="developer_contact_rahul_singh">Developer Contact: Rahul Singh</string>
+    <string name="search_using_ai">Search using AI</string>
+    <string name="extract_text">Extract Text</string>
+    <string name="extracted_text_here">Extracted Text Here</string>
+    <string name="select_image_from_gallery">Select Image From gallery</string>
+    <string name="open_camera">Open camera</string>
+    <string name="copy_button">Copy Button</string>
 </resources>

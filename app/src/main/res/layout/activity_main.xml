@@ -12,10 +12,9 @@
         android:layout_height="300dp"
         android:layout_marginTop="20dp"
         android:clickable="false"
-        android:contentDescription="Image Preview"
+        android:contentDescription="@string/image_preview"
         android:padding="1dp"
         android:background="@drawable/border_image"
-
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -25,7 +24,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="#147F69"
-        android:text="Select Image From gallery"
+        android:text="@string/select_image_from_gallery"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/selectCameraButton"
         app:layout_constraintTop_toBottomOf="@id/imageSrc"
@@ -36,7 +35,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="#147F69"
-        android:text="Open camera"
+        android:text="@string/open_camera"
         app:layout_constraintStart_toEndOf="@id/selectImageButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/imageSrc"
@@ -58,8 +57,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="#147F69"
-            android:textSize="15dp"
-            android:text="Extracted Text Here"
+            android:textSize="15sp"
+            android:text="@string/extracted_text_here"
             android:gravity="center" />
 
     </ScrollView>
@@ -68,7 +67,7 @@
         android:id="@+id/genTextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Extract Text"
+        android:text="@string/extract_text"
         android:textColor="#147F69"
         android:layout_marginBottom="20dp"
         app:layout_constraintTop_toBottomOf="@id/textLayout"
@@ -81,7 +80,7 @@
         android:id="@+id/aiBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Search using AI"
+        android:text="@string/search_using_ai"
         android:textColor="#147F69"
         android:layout_marginBottom="20dp"
         app:layout_constraintEnd_toStartOf="@id/cpyBtn"
@@ -98,6 +97,7 @@
         app:tint="@color/copy_btn_color"
         android:background="#00FFFFFF"
         android:layout_marginBottom="25dp"
+        android:contentDescription="@string/copy_button"
         app:layout_constraintStart_toEndOf="@id/aiBtn"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/textLayout"
@@ -107,12 +107,12 @@
         android:id="@+id/developerLink"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20dp"
-        android:gravity="right"
+        android:textSize="20sp"
+        android:gravity="end"
         android:layout_marginEnd="3dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:text="Developer Contact: Rahul Singh"/>
+        android:text="@string/developer_contact_rahul_singh"/>
 
     <ProgressBar
         android:id="@+id/progressBar"
